@@ -71,7 +71,7 @@ pub fn create_evm_instance() -> EVM<InMemoryDB>{
     ])?);
     let calldata = erc20_abi.encode("balanceOf",account)?;
 
-    evm.env.tx.caller = account;
+    evm.env.tx.caller = account.into();
     evm.env.tx.transact_to = TransactTo::Call(token.into());
     Ok(())
  }
