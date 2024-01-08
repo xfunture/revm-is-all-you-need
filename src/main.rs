@@ -20,7 +20,7 @@ use revm::{
         keccak256,AccountInfo,ExecutionResult,Log,Output,TransactTo,TxEnv,U256 as rU256,
     },
     Database,
-    EVM,
+    EVM, precompile::Address,
 };
 
 use std::{str::FromStr,sync::Arc};
@@ -65,13 +65,13 @@ pub fn create_evm_instance() -> EVM<InMemoryDB>{
  }
 
 
- pub fn get_token_balance(evm:&mut EVM<InMemoryDB>,token:H160,account:H160) -> Result<()>{
+ pub fn get_token_balance(evm:&mut EVM<InMemoryDB>,token:Address,account:Address) -> Result<()>{
     let erc20_abi = BaseContract::from(parse_abi(&[
         "function balanceOf(address) external view returns (uint256)",
     ])?);
     let calldata = erc20_abi.encode("balanceOf",account)?;
 
-    evm.env.tx.caller = account.into();
+    evm.env.tx.caller = account;
     evm.env.tx.transact_to = TransactTo::Call(token.into());
     Ok(())
  }
