@@ -1,29 +1,23 @@
-use anyhow::{Result, Ok};
-use bytes::Bytes;
+use anyhow::Result;
 use ethers::{
-    abi::{self,parse_abi},
-    prelude::*,
-    providers::Middleware,
-    types::{
-        transaction::eip2930::AccessList,BlockId,BlockNumber,Eip1559TransactionRequest,
-        NameOrAddress,H160,U256,
-    },
+    providers::{Middleware,Provider,Ws},
+    types::{BlockNumber,H160,Address},
 };
 
 use log::info;
+use std::{str::FromStr,sync::Arc};
 
-use futures::io::Empty;
-use revm::{
-    db::{CacheDB,EmptyDB,EthersDB,InMemoryDB},
-    primitives::Bytecode,
-    primitives::{
-        keccak256,AccountInfo,ExecutionResult,Log,Output,TransactTo,TxEnv,U256 as rU256,
-    },
-    Database,
-    EVM, precompile::Address,
+use revm_is_all_you_need::constants::Env;
+use revm_is_all_you_need::revm_examples::{
+    create_evm_instance,
+    evm_env_setup,
+    get_token_balance
 };
 
-use std::{str::FromStr,sync::Arc};
+use revm_is_all_you_need::utils::setup_logger;
+
+
+
 
 /*
  *  1.create the EVM instance
@@ -31,54 +25,35 @@ use std::{str::FromStr,sync::Arc};
  * 
  */
 
-#[derive(Debug,Clone)]
-pub struct TxResult{
-    pub output:Bytes,
-    pub logs:Option<Vec<Log>>,
-    pub gas_used:u64,
-    pub gas_refunded:u64,
-}
+//  use ethers::abi::ParamType::Address;
+//  use ethers::abi::Token::Address;
+ // use ethers::types::AddressOrBytes::Address;
+ // use ethers::types::NameOrAddress::Address;
+ // use ethers_core::abi::ParamType::Address;
+ // use ethers_core::abi::Token::Address;
+ // use ethers_core::types::AddressOrBytes::Address;
+ // use ethers_core::types::NameOrAddress::Address;
+ 
+ 
+ 
 
-
-
-
-/*
- *创建一个干净的以太坊环境，没有任何的存储值和合约
- */
-
-pub fn create_evm_instance() -> EVM<InMemoryDB>{
-    let db = CacheDB::new(EmptyDB::default());
-    let mut evm = EVM::new();
-    evm.database(db);
-    evm
-}
-
-/**
- * 以太坊环境配置
- * 为了使测试更简单，覆盖一些默认的配置
- */
-
- pub fn evm_env_setup(evm:&mut EVM<InMemoryDB>){
-     evm.env.cfg.limit_contract_code_size = Some(0x100000);
-    //  evm.env.cfg.disable_block_gas_limit = true;
-    //  evm.env.cfg.disable_base_fee = true;
- }
-
-
- pub fn get_token_balance(evm:&mut EVM<InMemoryDB>,token:Address,account:Address) -> Result<()>{
-    let erc20_abi = BaseContract::from(parse_abi(&[
-        "function balanceOf(address) external view returns (uint256)",
-    ])?);
-    let calldata = erc20_abi.encode("balanceOf",account)?;
-
-    evm.env.tx.caller = account.into();
-    evm.env.tx.transact_to = TransactTo::Call(token.into());
-    Ok(())
- }
 
 #[tokio::main]
 async fn main() ->Result<()> {
-    println!("Hello, world!");
+    dotenv::dotenv().ok();
+    setup_logger()?;
+
+    let mut evm = create_evm_instance();
+    evm_env_setup(&mut evm);
+
+    let user = H160::from_str("0xE2b5A9c1e325511a227EF527af38c3A7B65AFA1d").unwrap();
+    let weth = H160::from_str("0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2").unwrap();
+    let usdt = H160::from_str("0xdAC17F958D2ee523a2206206994597C13D831ec7").unwrap();
+    let usdc =H160::from_str("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48").unwrap();
+    let dai = H160::from_str("0x6B175474E89094C44Da98b954EedeAC495271d0F").unwrap();
+
+    let weth_balance = get_token_balance(&mut evm, weth.into(), user);
+    // info!("WETH balance: {:?}",weth_balance);
     Ok(())
 }
 
