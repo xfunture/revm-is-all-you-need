@@ -95,24 +95,25 @@ pub fn create_evm_instance() -> EVM<InMemoryDB>{
   * 
   */
 
- pub fn get_token_balance(evm:&mut EVM<InMemoryDB>,token:H160,account:H160) -> Result<()>{
+ pub fn get_token_balance(evm:&mut EVM<InMemoryDB>,token_address:String,account_address:String) -> Result<U256>{
     let erc20_abi = BaseContract::from(parse_abi(&[
         "function balanceOf(address) external view returns (uint256)",
     ])?);
-    println!("before encode");
-    let test_address = "0xE2b5A9c1e325511a227EF527af38c3A7B65AFA1d".to_string();
-    let test_address1 = Address::from_str(&test_address)?;
-    let calldata = erc20_abi.encode("balanceOf",test_address1)?;
-    println!("calldata:{:?}",calldata);
+    
+    let account = H160::from_str(&account_address)?;
+    let token = Address::from_str(&token_address)?;
+
 
     // //caller: 谁会调用这个函数
     // //transact_to:我们调用的函数
     // //data: 我们交易的输入数据
     // evm.env.tx.caller = account.into();
-    
-    /*
-    evm.env.tx.transact_to = TransactTo::Call(Address::from(account.into()));
+    let calldata = erc20_abi.encode("balanceOf",account)?;
+    evm.env.tx.transact_to = TransactTo::Call(token);
     evm.env.tx.data = calldata.0.into();
+    // println!("calldata:{:?}",calldata);
+
+    // /*
 
     let result: revm::primitives::ResultAndState = match evm.transact_ref(){
         Ok(result) => result,
@@ -150,7 +151,7 @@ pub fn create_evm_instance() -> EVM<InMemoryDB>{
     let decoded_output = erc20_abi.decode_output("balanceOf",tx_result.output)?;
     Ok(decoded_output)
 
-    */
-    Ok(())
+    // */
+    // Ok(())
 
  }
