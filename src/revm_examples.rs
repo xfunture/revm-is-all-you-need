@@ -1,4 +1,4 @@
-use anyhow::{Result};
+use anyhow::{Result, Ok};
 use bytes::Bytes;
 use ethers::{
     abi::{self,parse_abi},
@@ -25,6 +25,8 @@ use revm::{
 };
 // precompile::Address,
 use std::{str::FromStr,sync::Arc};
+use crate::constants::SIMULATOR_CODE;
+use crate::trace::get_state_diff;
 
 
 
@@ -154,4 +156,51 @@ pub fn create_evm_instance() -> EVM<InMemoryDB>{
     // */
     // Ok(())
 
+ }
+
+
+ pub async fn geth_and_revm_tracing<M:Middleware + 'static>(
+    evm:&mut EVM<InMemoryDB>,
+    provider:Arc<M>,
+    token:H160,
+    account:H160,
+ ) -> Result<()>{
+    let erc20_abi = BaseContract::from(parse_abi(&[
+        "function balanceOf(address) external view returns (uint256)",
+    ])?);
+    let calldata = erc20_abi.encode("balanceOf",account)?;
+    
+    let block = provider
+        .get_block(BlockNumber::Latest)
+        .await?
+        .ok_or(anyhow::anyhow!("failed to retrieve block"))?;
+
+    let nonce = provider
+        .get_transaction_count(account, Some(BlockId::Number(BlockNumber::Latest)))
+        .await?;
+
+    let chain_id = provider.get_chainid().await?;
+
+    let tx = Eip1559TransactionRequest{
+        chain_id:Some(chain_id.as_u64().into()),
+        nonce:Some(nonce),
+        from:Some(account),
+        to:Some(NameOrAddress::Address(token)),
+        gas:None,
+        value:None,
+        data:Some(calldata),
+        max_priority_fee_per_gas:None,
+        max_fee_per_gas:None,
+        access_list:AccessList::default(),
+    };
+
+    let geth_trace = get_state_diff(provider.clone(), tx, block.number.unwrap()).await?;
+
+        
+    }
+
+
+
+
+    Ok(())
  }
