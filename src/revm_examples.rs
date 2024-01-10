@@ -104,10 +104,10 @@ pub fn create_evm_instance() -> EVM<InMemoryDB>{
     let token = Address::from_str(&token_address)?;
 
 
-    // //caller: 谁会调用这个函数
-    // //transact_to:我们调用的函数
-    // //data: 我们交易的输入数据
-    // evm.env.tx.caller = account.into();
+    //caller: 谁会调用这个函数
+    //transact_to:我们调用的函数
+    //data: 我们交易的输入数据
+    evm.env.tx.caller = Address::from_str(&account_address)?;
     let calldata = erc20_abi.encode("balanceOf",account)?;
     evm.env.tx.transact_to = TransactTo::Call(token);
     evm.env.tx.data = calldata.0.into();
