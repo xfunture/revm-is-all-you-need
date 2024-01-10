@@ -1,4 +1,5 @@
-use anyhow::{Result, Ok};
+use anyhow::{Result};
+use std::result::Result::Ok;
 use bytes::Bytes;
 use ethers::{
     abi::{self,parse_abi},
@@ -97,6 +98,11 @@ pub fn create_evm_instance() -> EVM<InMemoryDB>{
   * 
   */
 
+//   use ::core::result::Result::Ok;
+//   `, `use crate::revm_examples::alloy_primitives::private::Ok;
+//   `, `use std::result::Result::Ok;
+
+
  pub fn get_token_balance(evm:&mut EVM<InMemoryDB>,token_address:String,account_address:String) -> Result<U256>{
     let erc20_abi = BaseContract::from(parse_abi(&[
         "function balanceOf(address) external view returns (uint256)",
@@ -116,7 +122,6 @@ pub fn create_evm_instance() -> EVM<InMemoryDB>{
     // println!("calldata:{:?}",calldata);
 
     // /*
-
     let result: revm::primitives::ResultAndState = match evm.transact_ref(){
         Ok(result) => result,
         Err(e) => return Err(anyhow::anyhow!("EVM call failed:{e:?}")),
@@ -195,12 +200,9 @@ pub fn create_evm_instance() -> EVM<InMemoryDB>{
     };
 
     let geth_trace = get_state_diff(provider.clone(), tx, block.number.unwrap()).await?;
+    println!("geth_trace:{:?}",geth_trace);
 
         
-    }
-
-
-
 
     Ok(())
  }
