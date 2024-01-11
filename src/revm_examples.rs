@@ -169,7 +169,7 @@ pub fn create_evm_instance() -> EVM<InMemoryDB>{
     provider:Arc<M>,
     token:H160,
     account:H160,
- ) -> Result<()>{
+ ) -> Result<i32>{
     let erc20_abi = BaseContract::from(parse_abi(&[
         "function balanceOf(address) external view returns (uint256)",
     ])?);
@@ -202,7 +202,74 @@ pub fn create_evm_instance() -> EVM<InMemoryDB>{
     let geth_trace = get_state_diff(provider.clone(), tx, block.number.unwrap()).await?;
     println!("geth_trace:{:?}",geth_trace);
 
-        
+    let prestate = match geth_trace{
+        GethTrace::Known(known) => match known{
+            GethTraceFrame::PreStateTracer(prestate) => match prestate{
+                PreStateFrame::Default(prestate_mode) => Some(prestate_mode),
+                _ => None,
+            },
+            _ => None,
+        },
+        _ => None,
+    }.unwrap();
 
-    Ok(())
+    let geth_touched_accs = prestate.0.keys();
+    info!("Geth trace: {:?}",geth_touched_accs);
+
+    let token_acc_state = prestate.0.get(&token).ok_or(anyhow::anyhow!("no token key"))?;
+    let token_touched_storage = token_acc_state
+        .storage
+        .clone()
+        .ok_or(anyhow::anyhow!("no storage values"))?;
+
+    for i in 0..20{
+        let slot = keccak256(&abi::encode(&[
+            abi::Token::Address(account.into()),
+            abi::Token::Uint(U256::from(i)),
+        ]));
+        info!("{} {:?}",i,slot);
+        // match token_touched_storage.get(&slot.into()){
+        //     Some(_) => {
+        //         info!("Balance storage slot:{:?} ({:?})",i,slot);
+        //         return Ok(i);
+        //     }
+        //     None => {}
+        // }
+    }
+
+    Ok(0)
  }
+
+
+pub async fn revm_contract_deploy_and_tracing<M:Middleware + 'static>(
+    evm:&mut EVM<InMemoryDB>,
+    provider:Arc<M>,
+    token_address:String,
+    account:H160
+) -> Result<i32>{
+
+
+    let token = Address::from_str(&token_address)?;
+    let block = provider
+                .get_block(BlockNumber::Latest)
+                .await?
+                .ok_or(anyhow::anyhow!("failed to retrieve block"))?;
+    
+    let mut ethersdb = EthersDB::new(provider.clone(),Some(block.number.unwrap().into())).expect("create EthersDB failed");
+
+    let token_acc_info = ethersdb.basic(token).unwrap().unwrap();
+    
+    evm.db.as_mut().unwrap().insert_account_info(token, token_acc_info);
+
+    let erc20_abi = BaseContract::from(parse_abi(&[
+        "function balanceOf(address) external view returns (uint256)",
+    ])?);
+
+    let calldata= erc20_abi.encode("balanceOf",account)?;
+
+    evm.env.tx.caller = account;
+    evm.env.tx.transact_to = TransactTo::Call(token.into());
+    evm.env.tx.data = calldata.0.clone();
+
+    Ok(0)
+}
