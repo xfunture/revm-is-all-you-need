@@ -245,10 +245,11 @@ pub async fn revm_contract_deploy_and_tracing<M:Middleware + 'static>(
     evm:&mut EVM<InMemoryDB>,
     provider:Arc<M>,
     token_address:String,
-    account:H160
+    account_address:String
 ) -> Result<i32>{
 
-
+    //deploy contract to EVM
+    let account = H160::from_str(&account_address)?;
     let token = Address::from_str(&token_address)?;
     let block = provider
                 .get_block(BlockNumber::Latest)
@@ -258,6 +259,8 @@ pub async fn revm_contract_deploy_and_tracing<M:Middleware + 'static>(
     let mut ethersdb = EthersDB::new(provider.clone(),Some(block.number.unwrap().into())).expect("create EthersDB failed");
 
     let token_acc_info = ethersdb.basic(token).unwrap().unwrap();
+
+    println!("token_acc_info: {:?}",token_acc_info);
     
     evm.db.as_mut().unwrap().insert_account_info(token, token_acc_info);
 
@@ -265,11 +268,36 @@ pub async fn revm_contract_deploy_and_tracing<M:Middleware + 'static>(
         "function balanceOf(address) external view returns (uint256)",
     ])?);
 
-    let calldata= erc20_abi.encode("balanceOf",account)?;
+    let calldata = erc20_abi.encode("balanceOf",account)?;
 
-    evm.env.tx.caller = account;
+    evm.env.tx.caller = Address::from_str(&account_address)?;
     evm.env.tx.transact_to = TransactTo::Call(token.into());
-    evm.env.tx.data = calldata.0.clone();
+    evm.env.tx.data= calldata.0.into();
+
+    let result = match evm.transact_ref() {
+        Ok(result) => result,
+        Err(e) => return Err(anyhow::anyhow!("EVM call failed: {e:?}")),
+    };
+
+    let token_acc = result.state.get(&token).unwrap();
+    let token_touched_storage = token_acc.storage.clone();
+    info!("Touched storage slots: {:?}",token_touched_storage);
+
+    for i in 0..20{
+        let slot = keccak256(&abi::encode(&[
+            abi::Token::Address(H160::from_str(&account_address)?),
+            abi::Token::Uint(U256::from(i)),
+        ]));
+        let slot:rU256 = slot.into();
+        match token_touched_storage.get(&slot){
+            Some(_) => {
+                info!("Balance storage slot: {:?} ({:?})",i,slot);
+                return Ok(i);
+            }
+            None => {}
+        }
+
+    }
 
     Ok(0)
 }
