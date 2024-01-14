@@ -7,7 +7,7 @@ use ethers::{
 use log::info;
 use std::{str::FromStr,sync::Arc};
 
-use revm_is_all_you_need::constants::Env;
+use revm_is_all_you_need::{constants::Env, revm_examples::revm_contract_deploy_and_tracing};
 use revm_is_all_you_need::revm_examples::{
     create_evm_instance,
     evm_env_setup,
@@ -65,6 +65,12 @@ async fn main() ->Result<()> {
         Err(e) => info!("Tracing error: {e:?}"),
     }
     println!("WSS_URL: {}",env.wss_url);
+
+
+    match revm_contract_deploy_and_tracing(&mut evm, provider.clone(), weth.to_string(), user.to_string()).await{
+        Ok(_) => {println!("revm_contract_deploy_and_tracing success");}
+        Err(e) => info!("Tracing error: {e:?}"),
+    }
 
     Ok(())
 }
