@@ -60,6 +60,8 @@ async fn main() ->Result<()> {
     let ws = Ws::connect(&env.wss_url).await.unwrap();
     let provider = Arc::new(Provider::new(ws));
 
+    
+    
     match geth_and_revm_tracing(&mut evm, provider.clone(), H160::from_str(weth)?, H160::from_str(user)?).await{
         Ok(_) => {}
         Err(e) => info!("Tracing error: {e:?}"),
@@ -67,10 +69,13 @@ async fn main() ->Result<()> {
     println!("WSS_URL: {}",env.wss_url);
 
 
+
     match revm_contract_deploy_and_tracing(&mut evm, provider.clone(), weth.to_string(), user.to_string()).await{
         Ok(_) => {println!("revm_contract_deploy_and_tracing success");}
         Err(e) => info!("Tracing error: {e:?}"),
     }
+
+    println!("End");
 
     Ok(())
 }
