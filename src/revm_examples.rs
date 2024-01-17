@@ -260,7 +260,7 @@ pub async fn revm_contract_deploy_and_tracing<M:Middleware + 'static>(
 
     let token_acc_info = ethersdb.basic(token).unwrap().unwrap();
 
-    println!("token_acc_info: {:?}",token_acc_info);
+    // println!("token_acc_info: {:?}",token_acc_info);
     
     evm.db.as_mut().unwrap().insert_account_info(token, token_acc_info);
 
@@ -298,6 +298,6 @@ pub async fn revm_contract_deploy_and_tracing<M:Middleware + 'static>(
         }
 
     }
-
+    println!("hello");
     Ok(0)
 }
