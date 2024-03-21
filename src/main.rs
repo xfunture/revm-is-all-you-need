@@ -7,7 +7,8 @@ use ethers::{
 use log::info;
 use std::{str::FromStr,sync::Arc};
 
-use revm_is_all_you_need::{constants::Env, revm_examples::revm_contract_deploy_and_tracing};
+// use revm_is_all_you_need::{revm_examples::revm_contract_deploy_and_tracing};
+use revm_is_all_you_need::{constants::Env};
 use revm_is_all_you_need::revm_examples::{
     create_evm_instance,
     evm_env_setup,
@@ -53,8 +54,9 @@ async fn main() ->Result<()> {
     let usdc =H160::from_str("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48").unwrap();
     let dai = H160::from_str("0x6B175474E89094C44Da98b954EedeAC495271d0F").unwrap();
 
-    let weth_balance = get_token_balance(&mut evm, weth.to_string(), user.to_string());
-    info!("WETH balance: {:?}",weth_balance);
+    // let weth_balance = get_token_balance(&mut evm, weth.to_string(), user.to_string());
+    // info!("WETH balance: {:?}",weth_balance);
+
 
     let env = Env::new();
     let ws = Ws::connect(&env.wss_url).await.unwrap();
@@ -66,16 +68,17 @@ async fn main() ->Result<()> {
         Ok(_) => {}
         Err(e) => info!("Tracing error: {e:?}"),
     }
-    println!("WSS_URL: {}",env.wss_url);
 
 
-
+    /*
     match revm_contract_deploy_and_tracing(&mut evm, provider.clone(), weth.to_string(), user.to_string()).await{
         Ok(_) => {println!("revm_contract_deploy_and_tracing success");}
         Err(e) => info!("Tracing error: {e:?}"),
     }
 
     println!("End");
+     */
+
 
     Ok(())
 }

@@ -1,4 +1,5 @@
 use anyhow::{Result};
+use anyhow::anyhow;
 use std::result::Result::Ok;
 use bytes::Bytes;
 use ethers::{
@@ -14,16 +15,18 @@ use ethers::{
 use log::info;
 
 use futures::io::Empty;
-use revm::{self, primitives::{alloy_primitives, address}};
+use revm::{self,primitives::Address};
 use revm::{
     db::{CacheDB,EmptyDB,EthersDB,InMemoryDB},
     primitives::Bytecode,
     primitives::{
-        keccak256,AccountInfo,ExecutionResult,Log,Output,TransactTo,TxEnv,U256 as rU256,
+        keccak256,AccountInfo,ExecutionResult,Log,Output,TransactTo,TxEnv,U256 as rU256,B256,B160
     },
     Database,
     EVM,
 };
+
+
 // precompile::Address,
 use std::{str::FromStr,sync::Arc};
 use crate::constants::SIMULATOR_CODE;
@@ -39,7 +42,7 @@ use crate::trace::get_state_diff;
 
 
 // use alloy_primitives::{address, Address};
-use revm::primitives::alloy_primitives::Address;
+// use revm::primitives::alloy_primitives::Address;
 
 // let checksummed = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045";
 // let expected = address!("d8da6bf26964af9d7eed9e03e53415d37aa96045");
@@ -115,7 +118,8 @@ pub fn create_evm_instance() -> EVM<InMemoryDB>{
     //caller: 谁会调用这个函数
     //transact_to:我们调用的函数
     //data: 我们交易的输入数据
-    evm.env.tx.caller = Address::from_str(&account_address)?;
+    // evm.env.tx.caller = Address::from_str(&account_address);
+    evm.env.tx.caller = account.into();
     let calldata = erc20_abi.encode("balanceOf",account)?;
     evm.env.tx.transact_to = TransactTo::Call(token);
     evm.env.tx.data = calldata.0.into();
@@ -170,7 +174,8 @@ pub fn create_evm_instance() -> EVM<InMemoryDB>{
     token:H160,
     account:H160,
  ) -> Result<i32>{
-    let erc20_abi = BaseContract::from(parse_abi(&[
+    //create an Eip1559 transaction object:
+    let erc20_abi: BaseContract = BaseContract::from(parse_abi(&[
         "function balanceOf(address) external view returns (uint256)",
     ])?);
     let calldata = erc20_abi.encode("balanceOf",account)?;
@@ -199,8 +204,9 @@ pub fn create_evm_instance() -> EVM<InMemoryDB>{
         access_list:AccessList::default(),
     };
 
+    //call debug_trace_call
     let geth_trace = get_state_diff(provider.clone(), tx, block.number.unwrap()).await?;
-    println!("geth_trace:{:?}",geth_trace);
+    // println!("geth_trace:{:?}",geth_trace);
 
     let prestate = match geth_trace{
         GethTrace::Known(known) => match known{
@@ -228,7 +234,7 @@ pub fn create_evm_instance() -> EVM<InMemoryDB>{
             abi::Token::Uint(U256::from(i)),
         ]));
         info!("{} {:?}",i,slot);
-        // match token_touched_storage.get(&slot.into()){
+        // match token_touched_storage.get(&slot){
         //     Some(_) => {
         //         info!("Balance storage slot:{:?} ({:?})",i,slot);
         //         return Ok(i);
@@ -240,7 +246,7 @@ pub fn create_evm_instance() -> EVM<InMemoryDB>{
     Ok(0)
  }
 
-
+/*
 pub async fn revm_contract_deploy_and_tracing<M:Middleware + 'static>(
     evm:&mut EVM<InMemoryDB>,
     provider:Arc<M>,
@@ -270,7 +276,7 @@ pub async fn revm_contract_deploy_and_tracing<M:Middleware + 'static>(
 
     let calldata = erc20_abi.encode("balanceOf",account)?;
 
-    evm.env.tx.caller = Address::from_str(&account_address)?;
+    evm.env.tx.caller = Address::from_str(&account_address);
     evm.env.tx.transact_to = TransactTo::Call(token.into());
     evm.env.tx.data= calldata.0.into();
 
@@ -300,4 +306,57 @@ pub async fn revm_contract_deploy_and_tracing<M:Middleware + 'static>(
     }
     println!("hello");
     Ok(0)
+}
+
+ */
+
+/**
+ * 通过REVM 实现模拟交易
+ */
+pub async fn revm_v2_simulate_swap<M: Middleware + 'static>(
+    evm: &mut EVM<InMemoryDB>,
+    provider: Arc<M>,
+    account: H160,
+    factory: H160,
+    target_pair: H160,
+    input_token: H160,
+    output_token: H160,
+    input_balance_slot: i32,
+    output_balance_slot: i32,
+    input_token_implementation: Option<H160>,
+    output_token_implementation: Option<H160>,
+) -> Result<(U256, U256)> {
+
+
+    //获取区块号
+    let block = provider
+    .get_block(BlockNumber::Latest)
+    .await?
+    .ok_or(anyhow!("failed to retrieve block"))?;
+
+    let mut ethersdb = EthersDB::new(provider.clone(), Some(block.number.unwrap().into())).unwrap();
+
+    let db = evm.db.as_mut().unwrap();
+
+
+    let ten_eth = rU256::from(10)
+    .checked_mul(rU256::from(10).pow(rU256::from(18)))
+    .unwrap();
+
+    // Set user: give the user enough ETH to pay for gas
+    let user_acc_info:AccountInfo = AccountInfo::new(rU256::ZERO, 0, B256::zero(), Bytecode::default());
+    db.insert_account_info(account.into(), user_acc_info);
+
+    // Deploy Simulator contract
+    let simulator_address = H160::from_str("0xF2d01Ee818509a9540d8324a5bA52329af27D19E").unwrap();
+    let simulator_acc_info = AccountInfo::new(
+        rU256::ZERO,
+        0,
+        Bytecode::new_raw((*SIMULATOR_CODE.0).into()),
+    );
+    db.insert_account_info(simulator_address.into(), simulator_acc_info);
+
+
+
+    Ok((U256::zero(), U256::zero())) // 👈 placeholder for now, will update later
 }
