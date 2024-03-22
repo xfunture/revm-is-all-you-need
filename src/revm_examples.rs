@@ -348,13 +348,13 @@ pub async fn revm_v2_simulate_swap<M: Middleware + 'static>(
     db.insert_account_info(account.into(), user_acc_info);
 
     // Deploy Simulator contract
-    let simulator_address = H160::from_str("0xF2d01Ee818509a9540d8324a5bA52329af27D19E").unwrap();
-    let simulator_acc_info = AccountInfo::new(
-        rU256::ZERO,
-        0,
-        Bytecode::new_raw((*SIMULATOR_CODE.0).into()),
-    );
-    db.insert_account_info(simulator_address.into(), simulator_acc_info);
+    // let simulator_address = H160::from_str("0xF2d01Ee818509a9540d8324a5bA52329af27D19E").unwrap();
+    // let simulator_acc_info = AccountInfo::new(
+    //     rU256::ZERO,
+    //     0,
+    //     Bytecode::new_raw((*SIMULATOR_CODE.0).into()),
+    // );
+    // db.insert_account_info(simulator_address.into(), simulator_acc_info);
 
 
 
