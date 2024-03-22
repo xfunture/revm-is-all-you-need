@@ -167,7 +167,9 @@ pub fn create_evm_instance() -> EVM<InMemoryDB>{
 
  }
 
-
+/**
+ * 构建EIP1559请求
+ */
  pub async fn geth_and_revm_tracing<M:Middleware + 'static>(
     evm:&mut EVM<InMemoryDB>,
     provider:Arc<M>,
@@ -222,7 +224,7 @@ pub fn create_evm_instance() -> EVM<InMemoryDB>{
     let geth_touched_accs = prestate.0.keys();
     info!("Geth trace: {:?}",geth_touched_accs);
 
-    let token_acc_state = prestate.0.get(&token).ok_or(anyhow::anyhow!("no token key"))?;
+    let token_acc_state: &AccountState = prestate.0.get(&token).ok_or(anyhow::anyhow!("no token key"))?;
     let token_touched_storage = token_acc_state
         .storage
         .clone()
