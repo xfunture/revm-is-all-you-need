@@ -112,7 +112,7 @@ pub fn get_token_balance(evm: &mut EVM<InMemoryDB>, token: H160, account: H160) 
     ])?);
     let calldata = erc20_abi.encode("balanceOf", account)?;
 
-    evm.env.tx.caller = Address::from_str(account.to_string());
+    evm.env.tx.caller = account.into();
     evm.env.tx.transact_to = TransactTo::Call(token.into());
     evm.env.tx.data = calldata.0;
 
