@@ -23,7 +23,11 @@ use std::sync::Arc;
     ]
 }
  */
-
+/**
+ * 通过debug_trace_call 调用，获取ETH链上的交易信息
+ * debug_trace_call 用的是PreStateTracer 类型，默认情况下，PreStateGracer 查询的是
+ * 
+ */
 pub async fn get_state_diff<M:Middleware + 'static>(
     provider:Arc<M>,
     tx:Eip1559TransactionRequest,
