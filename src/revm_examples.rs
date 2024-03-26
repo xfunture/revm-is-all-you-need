@@ -1,7 +1,5 @@
 use anyhow::{Result};
 use anyhow::anyhow;
-use core::abi::Tokenizable;
-use std::result::Result::Ok;
 use bytes::Bytes;
 use ethers::{
     abi::{self,parse_abi},
@@ -30,7 +28,6 @@ use revm::{
 
 // precompile::Address,
 use std::{str::FromStr,sync::Arc};
-use crate::constants::SIMULATOR_CODE;
 use crate::trace::get_state_diff;
 
 
@@ -263,10 +260,7 @@ pub fn get_token_balance(evm: &mut EVM<InMemoryDB>, token: H160, account: H160) 
     let mut ethersdb = EthersDB::new(provider.clone(), Some(block.number.unwrap().into())).unwrap();
 
     let token_acc_info = ethersdb.basic(token.into()).unwrap().unwrap();
-    evm.db
-        .as_mut()
-        .unwrap()
-        .insert_account_info(token.into(), token_acc_info);
+    evm.db.as_mut().unwrap().insert_account_info(token.into(), token_acc_info);
 
     let erc20_abi = BaseContract::from(parse_abi(&[
         "function balanceOf(address) external view returns (uint256)",

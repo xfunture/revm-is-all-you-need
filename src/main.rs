@@ -124,6 +124,41 @@ async fn main() ->Result<()> {
         Ok(_) => {info!("revm_v2_simulate_swap")}
         Err(e) => info!("v2SimulateSwap revm failed: {e:?}"),
     }
+
+
+    match foundry_v2_simulate_swap(
+        provider.clone(),
+        user,
+        weth_usdt_pair,
+        weth,
+        usdt,
+        weth_balance_slot,
+    )
+    .await
+    {
+        Ok(_) => {}
+        Err(e) => info!("v2SimulateSwap foundry evm failed: {e:?}"),
+    }
+
+    // match eth_call_get_token_balance(provider.clone(), weth, 3, user).await {
+    //     Ok(_) => {}
+    //     Err(_) => {}
+    // }
+
+    match eth_call_v2_simulate_swap(
+        provider.clone(),
+        user,
+        weth_usdt_pair,
+        weth,
+        usdt,
+        weth_balance_slot,
+    )
+    .await
+    {
+        Ok(_) => {}
+        Err(e) => info!("v2SimulateSwap eth_call failed: {e:?}"),
+    }
+
     println!("End");
 
 

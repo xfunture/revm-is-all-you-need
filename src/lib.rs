@@ -1,5 +1,9 @@
+pub mod benchmarks;
 pub mod revm_examples;
 pub mod constants;
 pub mod utils;
 pub mod trace;
 pub mod tokens;
+pub mod revm_inspectors;
+pub mod foundry_example;
+pub mod eth_call_examples;
